@@ -11,7 +11,8 @@ seed(int(time()))    # Gerando a seed inicial do nosso randomizador
 
 
 def criarMenu(toplevel, matriz, botoes, inicio):  # Cria a barra de menu no topo do programa, com as opcoes
-    menu = Menu(toplevel)                         # de tamanho e uma opcao de sair do programa.
+    global marcadores                             # de tamanho e uma opcao de sair do programa.
+    menu = Menu(toplevel)
     menuTamanhos = Menu(toplevel, tearoff=0)
     menuTamanhos.add_command(label="Pequeno (9x9 e 10 minas)", command = lambda : recomecarJogo(toplevel,matriz,botoes, inicio, 9, 9, 10))
     menuTamanhos.add_command(label="Medio (16x16 e 40 minas)", command = lambda : recomecarJogo(toplevel,matriz,botoes, inicio, 16, 16, 40))
@@ -21,6 +22,7 @@ def criarMenu(toplevel, matriz, botoes, inicio):  # Cria a barra de menu no topo
     menu.add_cascade(label="Alterar Tamanho", menu=menuTamanhos)
     menu.add_command(label="Sair", command = lambda: toplevel.destroy())
     toplevel.config(menu=menu)
+
 
 def tamanhoCustomizado(toplevel,matriz,botoes, inicio):   #Funcao que cria um novo tabuleiro com tamanho customizado
 
@@ -143,13 +145,26 @@ def autoClique(x, y, botoes, matriz):        # Funcao que controla o clique nos 
             autoClique(x+1,y+1,botoes,matriz)
 
 
-def cliqueBotaoDireito(x,y,botoes):           # Rege a "marcacao" dos botoes
+def cliqueBotaoDireito(event,x,y,botoes):           # Rege a "marcacao" dos botoes
+    global jogoFinalizado, marcadores, indicadorMarcadores
+    if jogoFinalizado:
+        return
+
     if botoes[x][y]["text"] == "?":
         botoes[x][y]["text"] = " "
-        botoes[x][y]["state"] = "normal"
-    elif botoes[x][y]["text"] == " " and botoes[x][y]["state"] == "normal":
-        botoes[x][y]["text"] = "a"
+        botoes[x][y]["state"] = "active"
+        marcadores = marcadores + 1
+        indicadorMarcadores.destroy()
+        indicadorMarcadores = Label(text = "Marcadores Restantes: " + str(marcadores) )
+        indicadorMarcadores.pack()
+    elif botoes[x][y]["text"] == " " and  botoes[x][y]["state"] == "active" and marcadores > 0:
+        botoes[x][y]["text"] = "?"
         botoes[x][y]["state"] = "disabled"
+        marcadores = marcadores - 1
+        indicadorMarcadores.destroy()
+        indicadorMarcadores = Label(text = "Marcadores Restantes: " + str(marcadores) )
+        indicadorMarcadores.pack()
+
 
 
 
@@ -172,7 +187,8 @@ def recomecarJogo(toplevel, matriz, botoes, inicio, linhas, colunas, numMinas): 
 
 
 def preJogo(matriz, botoes,inicio,linhas = 9, colunas = 9, numMinas = 10): # Realiza os procedimentos pre-jogo
-    global jogoFinalizado
+    global jogoFinalizado, marcadores, indicadorMarcadores
+    marcadores = numMinas
     jogoFinalizado = False
     inicio = Frame(raiz)
     inicio.pack()
@@ -183,10 +199,12 @@ def preJogo(matriz, botoes,inicio,linhas = 9, colunas = 9, numMinas = 10): # Rea
         botoes.append([])
         for j in range(colunas):
             btn = Button(inicio, width = 2, text = " ", command = lambda x=i,y=j: cliqueNoBotao(x,y,botoes,matriz))
+            btn.bind("<Button-3>", lambda event, x = i, y = j, botoes = botoes : cliqueBotaoDireito(event, x, y, botoes))
             btn.config(disabledforeground= "black")
             btn.grid(column = j, row = i, sticky = N+ W+ S+ E)
-
             botoes[i].append(btn)
+    indicadorMarcadores = Label(text = "Marcadores Restantes: " + str(marcadores))
+    indicadorMarcadores.pack()
 
 
 
@@ -199,6 +217,8 @@ inicio.pack()
 matriz = []
 botoes = []
 jogoFinalizado = False
+marcadores = 10
+indicadorMarcadores = Label()
 criarMenu(raiz, matriz, botoes, inicio)
 preJogo(matriz,botoes,inicio)
 
